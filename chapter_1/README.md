@@ -357,7 +357,7 @@ There does seem to be a trend here! Although the data is **noisy** (i.e., partly
 #### Equation. A simple linear model
 
 $$
-\text{life\_satisfaction} = \theta_0 + \theta_1 \times \text{GDP\_per\_capita}
+\mathrm{life\_satisfaction} = \theta_0 + \theta_1 \times \mathrm{GDP\_per\_capita}
 $$
 
 This model has two *model parameters*, $\theta_0$ and $\theta_1$. By tweaking these parameters, you can make your model represent any linear
