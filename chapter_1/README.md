@@ -305,3 +305,96 @@ A better option in all these scenarios is to use algorithms that are capable of 
 
 ### Online learning
 
+In **online learning**, you train the system incrementally by feeding it data instances sequentially, either individually or in small groups called **mini-batches**. Each learning step is fast and cheap, so the system can learn about new data on the fly, as it arrives . The most common online algorithm by far is gradient descent, but there are a few others.
+
+![In online learning, a model is trained and launched into production, and then it keeps learning as new data comes in](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0113.png)
+
+Online learning is useful for systems that need to adapt to change extremely rapidly (e.g., to detect new patterns in the stock market). It is also a good option if you have limited computing resources; for example, if the model is trained on a mobile device.
+
+Most importantly, online learning algorithms can be used to train models on huge datasets that cannot fit in one machine’s memory (this is called **out-of-core** learning). The algorithm loads part of the data, runs a training step on that data, and repeats the process until it has run on all of the data.
+
+![Using online learning to handle huge datasets](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0114.png)
+
+One important parameter of online learning systems is how fast they should adapt to changing data: this is called the learning rate. If you set a high **learning rate**, then your system will rapidly adapt to new data, but it will also tend to quickly forget the old data: this is called catastrophic forgetting (or **catastrophic interference**). You don’t want a spam filter to flag only the latest kinds of spam it was shown! Conversely, if you set a low learning rate, the system will have more inertia; that is, it will learn more slowly, but it will also be less sensitive to noise in the new data or to sequences of nonrepresentative data points (outliers).
+
+> **WARNING**: Out-of-core learning is usually done offline (i.e., not on the live system), so **online learning** can be a confusing name. Think of it as incremental learning. Moreover, mini-batches are often just called “batches”, so **batch learning** is also a confusing name. Think of it as learning from scratch on the full dataset.
+
+A big challenge with online learning is that if bad data is fed to the system, the system’s performance will decline, possibly quickly (depending on the data quality and learning rate). If it’s a live system, your clients will notice. For example, bad data could come from a bug (e.g., a malfunctioning sensor on a robot), or it could come from someone trying to game the system (e.g., spamming a search engine to try to rank high in search results). To reduce this risk, you need to monitor your system closely and promptly switch learning off (and possibly revert to a previously working state) if you detect a drop in performance. You may also want to monitor the input data and react to abnormal data; for example, using an anomaly detection algorithm.
+
+## Instance-Based Versus Model-Based Learning
+
+One more way to categorize machine learning systems is by how they *generalize*. Most machine learning tasks are about making predictions. This means that given a number of training examples, the system needs to be able to make good predictions for (generalize to) examples it has never seen before. Having a good performance measure on the training data is good, but insufficient; the true goal is to perform well on new instances.
+
+There are two main approaches to generalization: instance-based learning and model-based learning.
+
+### Instance-based learning
+
+Possibly the most trivial form of learning is simply to learn by heart. If you were to create a spam filter this way, it would just flag all emails that are identical to emails that have already been flagged by users—not the worst solution, but certainly not the best.
+
+Instead of just flagging emails that are identical to known spam emails, your spam filter could be programmed to also flag emails that are very similar to known spam emails. This requires a *measure of similarity* between two emails. A (very basic) similarity measure between two emails could be to count the number of words they have in common. The system would flag an email as spam if it has many words in common with a known spam email.
+
+This is called *instance-based learning*: the system learns the examples by heart, then generalizes to new cases by using a similarity measure to compare them to the learned examples (or a subset of them). For example, in Figure 1-15 the new instance would be classified as a triangle because the majority of the most similar instances belong to that class.
+
+Instance-based learning often shines with small datasets, especially if the data keeps changing, but it does not scale very well: it requires deploying a whole copy of the training set to production; making predictions requires searching for similar instances, which can be quite slow; and it doesn’t work well with high-dimensional data such as images.
+
+![Instance-based learning: in this example we consider the class of the three nearest neighbors in the training set
+](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0115.png)
+
+### Model-based learning and a typical machine learning workflow
+
+Another way to generalize from a set of examples is to build a model of these examples and then use that model to make **predictions**. This is called **model-based learning**.
+
+![Model-based learning](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0116.png)
+
+For example, suppose you want to know if money makes people happy, so you download the Better Life Index data from the [OECD’s website](https://www.oecdbetterlifeindex.org/), and [World Bank stats](https://ourworldindata.org/) about gross domestic product (GDP) per capita. Then you join the tables and sort by GDP per capita. 
+
+Let’s plot the data for these countries
+
+![Do you see a trend here?](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0117.png)
+
+There does seem to be a trend here! Although the data is **noisy** (i.e., partly random), it looks like life satisfaction goes up more or less linearly as the country’s GDP per capita increases. So you decide to model life satisfaction as a linear function of GDP per capita (you assume that any deviation from that line is just random noise). This step is called **model selection**: you selected a **linear model** of life satisfaction with just one attribute, GDP per capita
+
+#### Equation. A simple linear model
+
+$$
+\text{life\_satisfaction} = \theta_0 + \theta_1 \times \text{GDP\_per\_capita}
+$$
+
+This model has two *model parameters*, $\theta_0$ and $\theta_1$. By tweaking these parameters, you can make your model represent any linear
+function.
+
+![ A few possible linear models](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0118.png)
+
+Before you can use your model, you need to define the parameter values
+$\theta_0$ and $\theta_1$. How can you know which values will make your model
+perform best? To answer this question, you need to specify a performance
+measure. You can either define a *utility function* (or *fitness function*)
+that measures how good your model is, or you can define a *cost function*
+(a.k.a., *loss function*) that measures how bad it is. For linear regression
+problems, people typically use a cost function that measures the distance
+between the linear model’s predictions and the training examples; the
+objective is to minimize this distance.
+
+This is where the linear regression algorithm comes in: you feed it your
+training examples, and it finds the parameters that make the linear model fit
+best to your data. This is called *training* the model. In our case, the
+algorithm finds that the optimal parameter values are
+$\theta_0 = 3.75$ and $\theta_1 = 6.78 \times 10^{-5}$.
+
+> ⚠️ **WARNING**
+>
+> Confusingly, the word “model” can refer to a *type of model*
+> (e.g., linear regression), to a *fully specified model architecture*
+> (e.g., linear regression with one input and one output), or to the
+> *final trained model* ready to be used for predictions (e.g., linear
+> regression with one input and one output, using
+> $\theta_0 = 3.75$ and $\theta_1 = 6.78 \times 10^{-5}$).
+> Model selection consists in choosing the type of model and fully
+> specifying its architecture. Training a model means running an
+> algorithm to find the model parameters that will make it best fit the
+> training data, and hopefully make good predictions on new data.
+
+Now the model fits the training data as closely as possible (for a linear model)
+
+![The linear model that fits the training data best](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0119.png)
+
