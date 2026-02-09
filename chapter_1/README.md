@@ -399,3 +399,123 @@ Now the model fits the training data as closely as possible (for a linear model)
 
 ![The linear model that fits the training data best](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0119.png)
 
+You are finally ready to run the model to make predictions. For example, say
+you want to know how happy Puerto Ricans are, and the OECD data does not have
+the answer. Fortunately, you can use your model to make a good prediction:
+you look up Puerto Rico’s GDP per capita, find \$33,442, and then apply your
+model and find that life satisfaction is likely to be somewhere around
+
+$$
+3.75 + 33{,}442 \times 6.78 \times 10^{-5} = 6.02.
+$$
+
+To whet your appetite, here is the Python code that loads the data, separates the inputs `X` from the labels `y`, creates a **scatterplot** for visualization, and then trains a linear model and makes a prediction.
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+# Download and prepare the data
+data_root = "https://github.com/ageron/data/raw/main/"
+lifesat = pd.read_csv(data_root + "lifesat/lifesat.csv")
+X = lifesat[["GDP per capita (USD)"]].values
+y = lifesat[["Life satisfaction"]].values
+
+# Visualize the data
+lifesat.plot(kind='scatter', grid=True,
+             x="GDP per capita (USD)", y="Life satisfaction")
+plt.axis([23_500, 62_500, 4, 9])
+plt.show()
+
+# Select a linear model
+model = LinearRegression()
+
+# Train the model
+model.fit(X, y)
+
+# Make a prediction for Puerto Rico
+X_new = [[33_442.8]]  # Puerto Rico' GDP per capita in 2020
+print(model.predict(X_new)) # outputs [[6.01610329]]
+```
+
+> **NOTE:** If you had used an instance-based learning algorithm instead, you would have found that Poland has the closest GDP per capita to that of Puerto Rico ($32,238), and since the OECD data tells us that Poles’ life satisfaction is 6.1, you would have predicted a life satisfaction of 6.1 as well for Puerto Rico. If you zoom out a bit and look at the next two closest countries, you will find Portugal with a life satisfaction of 5.4, and Estonia with a life satisfaction of 5.7. Averaging these three values, you get 5.73, which is a bit below your model-based prediction. This simple algorithm is called **k-nearest neighbors** regression (in this example, k = 3).
+
+Replacing the linear regression model with k-nearest neighbors regression in the previous code is as easy as replacing these lines:
+
+```python
+from sklearn.linear_model import LinearRegression
+model = LinearRegression()
+```
+
+with these two:
+
+```python
+from sklearn.neighbors import KNeighborsRegressor
+model = KNeighborsRegressor(n_neighbors=3)
+```
+
+If all went well, your model will make good predictions. If not, you may need to use more attributes (employment rate, health, air pollution, etc.), get more or better-quality training data, or perhaps select a more powerful model (e.g., a polynomial regression model).
+
+In summary:
+
+- You studied the data.
+- You selected a model.
+- You trained it on the training data (i.e., the learning algorithm searched for the model parameter values that minimize a cost function).
+- Finally, you applied the model to make predictions on new cases (this is called ***inference***), hoping that this model will generalize well.
+
+We discussed quite a few categories of ML systems, but this field has more! For example, **ensemble learning** involves training multiple models and combining their individual predictions into improved predictions; **federated learning** is a decentralized approach where models are trained across multiple devices (e.g., smartphones) and adapted to each user without exchanging raw data, thereby protecting the user’s privacy; **meta-learning** is a learning-to-learn approach where models learn how to learn new tasks quickly with minimal data. And the list goes on! Figure 1-20 summarizes the various classifications of ML systems we have discussed so far.
+
+![Overview of ML categories](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0120.png)
+
+## Main Challenges of Machine Learning
+
+In short, since your main task is to select a model and train it on some data, the two things that can go wrong are “bad model” and “bad data”. Let’s start with examples of bad data.
+
+### Insufficient Quantity of Training Data
+
+For a toddler to learn what an apple is, all it takes is for you to point to an apple and say “apple” (possibly repeating this procedure a few times). Now the child is able to recognize apples in all sorts of colors and shapes. Genius.
+
+Machine learning is not quite there yet; it takes a lot of data for most machine learning algorithms to work properly. Even for very simple problems you typically need thousands of examples, and for complex problems such as image or speech recognition you may need millions of examples (unless you can reuse parts of an existing model, i.e., transfer learning).
+
+> **The Unreasonable Effectiveness of Data:** In a [famous paper](https://homl.info/6) published in 2001, Microsoft researchers Michele Banko and Eric Brill showed that very different machine learning algorithms, including fairly simple ones, performed almost identically well on a complex problem of natural language disambiguation⁠ once they were given enough data.
+
+![The importance of data versus algorithms](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0121.png)
+
+As the authors put it, “these results suggest that we may want to reconsider the trade-off between spending time and money on algorithm development versus spending it on corpus development”.
+
+The idea that data matters more than algorithms for complex problems was further popularized by Peter Norvig et al. in a paper titled “[The Unreasonable Effectiveness of Data](https://homl.info/7)”, published in 2009.⁠ It should be noted, however, that small and medium-sized datasets are still very common, and it is not always easy or cheap to get extra training data⁠—so don’t abandon algorithms just yet.
+
+### Nonrepresentative Training Data
+
+In order to generalize well, it is crucial that your training data be representative of the new cases you want to generalize to. This is true whether you use instance-based learning or model-based learning.
+
+For example, the set of countries you used earlier for training the linear model was not perfectly representative; it did not contain any country with a GDP per capita lower than $23,500 or higher than $62,500. Figure bellow shows what the data looks like when you add such countries.
+
+If you train a linear model on this data, you get the solid line, while the old model is represented by the dotted line. As you can see, not only does adding a few missing countries significantly alter the model, but it makes it clear that such a simple linear model is probably never going to work well. It seems that very rich countries are not happier than moderately rich countries (in fact, they seem slightly unhappier!), and conversely some poor countries seem happier than many rich countries.
+
+By using a nonrepresentative training set, you trained a model that is unlikely to make accurate predictions, especially for very poor and very rich countries.
+
+It is crucial to use a training set that is representative of the cases you want to generalize to. This is often harder than it sounds: if the sample is too small, you will have **sampling noise** (i.e., nonrepresentative data as a result of chance), but even very large samples can be nonrepresentative if the sampling method is flawed. This is called **sampling bias**.
+
+![A more representative training sample](https://learning.oreilly.com/api/v2/epubs/urn:orm:book:9798341607972/files/assets/hmls_0122.png)
+
+> **Examples of Sampling Bias**
+> Perhaps the most famous example of sampling bias happened during the US presidential election in 1936, which pitted Landon against Roosevelt: the Literary Digest conducted a very large poll, sending mail to about 10 million people. It got 2.4 million answers, and predicted with high confidence that Landon would get 57% of the votes. Instead, Roosevelt won with 62% of the votes. The flaw was in the Literary Digest’s sampling method:
+
+- First, to obtain the addresses to send the polls to, the *Literary Digest* used telephone directories, lists of magazine subscribers, club membership lists, and the like. All of these lists tended to favor wealthier people, who were more likely to vote Republican (hence Landon).
+- Second, less than 25% of the people who were polled answered. Again this introduced a sampling bias, by potentially ruling out people who didn’t care much about politics, people who didn’t like the *Literary Digest*, and other key groups. This is a special type of sampling bias called *nonresponse* bias.
+
+Here is another example: say you want to build a system to recognize funk music videos. One way to build your training set is to search for “funk music” on YouTube and use the resulting videos. But this assumes that YouTube’s search engine returns a set of videos that are representative of all the funk music videos on YouTube. In reality, the search results are likely to be biased toward popular artists (and if you live in Brazil you will get a lot of “funk carioca” videos, which sound nothing like James Brown). On the other hand, how else can you get a large training set?
+
+### Poor-Quality Data
+
+Obviously, if your training data is full of errors, outliers, and noise (e.g., due to poor-quality measurements), it will make it harder for the system to detect the underlying patterns, so your system is less likely to perform well. It is often well worth the effort to spend time cleaning up your training data. The truth is, most data scientists spend a significant part of their time doing just that. The following are a couple examples of when you’d want to clean up training data:
+
+- If some instances are clearly outliers, it may help to simply discard them or try to fix the errors manually.
+
+- If some instances are missing a few features (e.g., 5% of your customers did not specify their age), you must decide whether you want to ignore this attribute altogether, ignore these instances, fill in the missing values (e.g., with the median age), or train one model with the feature and one model without it.
+
+### Irrelevant Features
+
